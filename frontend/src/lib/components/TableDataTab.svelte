@@ -1,14 +1,16 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import DataGrid from "./DataGrid.svelte";
-  import { executeSql, getColumns } from "../api";
-  import type { Result, ColumnInfo } from "../../../bindings/github.com/collins/GoDBClient/internal/models/models";
+  import { executeSql, getColumns, getForeignKeys, getIndexes } from "../api";
+  import type { Result, ColumnInfo, ForeignKeyInfo } from "../../../bindings/github.com/collins/GoDBClient/internal/models/models";
 
   let { connId, schema, table }: { connId: string; schema: string; table: string } = $props();
 
   let view = $state<"data" | "structure">("data");
   let result = $state<Result | null>(null);
   let columns = $state<ColumnInfo[]>([]);
+  let fks = $state<ForeignKeyInfo[]>([]);
+  let indexes = $state<string[]>([]);
   let error = $state<string | null>(null);
   let loading = $state(false);
   let limit = $state(100);
@@ -23,7 +25,14 @@
     catch (e) { error = e instanceof Error ? e.message : String(e); result = null; }
     finally { loading = false; }
   }
-  async function loadStructure() { try { columns = await getColumns(connId, schema, table); } catch { columns = []; } }
+  async function loadStructure() {
+    const [c, f, i] = await Promise.all([
+      getColumns(connId, schema, table).catch(() => [] as ColumnInfo[]),
+      getForeignKeys(connId, schema, table).catch(() => [] as ForeignKeyInfo[]),
+      getIndexes(connId, schema, table).catch(() => [] as string[]),
+    ]);
+    columns = c; fks = f; indexes = i;
+  }
 
   function prev() { offset = Math.max(0, offset - limit); void loadData(); }
   function next() { offset += limit; void loadData(); }
@@ -57,6 +66,7 @@
     <div class="content"><DataGrid {result} /></div>
   {:else}
     <div class="structure">
+      <div class="section-title">Columns</div>
       <table>
         <thead><tr><th>Name</th><th>Type</th><th>Nullable</th><th>Primary Key</th><th>Default</th></tr></thead>
         <tbody>
@@ -70,6 +80,34 @@
             </tr>
           {:else}
             <tr><td colspan="5" class="muted pad">No column information available.</td></tr>
+          {/each}
+        </tbody>
+      </table>
+
+      <div class="section-title">Foreign Keys</div>
+      <table>
+        <thead><tr><th>Name</th><th>Columns</th><th>References</th></tr></thead>
+        <tbody>
+          {#each fks as fk}
+            <tr>
+              <td class="colname">{fk.name || '—'}</td>
+              <td class="type">{(fk.columns ?? []).join(', ') || '—'}</td>
+              <td class="type">{fk.referencedSchema ? fk.referencedSchema + '.' : ''}{fk.referencedTable}{(fk.referencedColumns ?? []).length ? '(' + (fk.referencedColumns ?? []).join(', ') + ')' : ''}</td>
+            </tr>
+          {:else}
+            <tr><td colspan="3" class="muted pad">No foreign keys.</td></tr>
+          {/each}
+        </tbody>
+      </table>
+
+      <div class="section-title">Indexes</div>
+      <table>
+        <thead><tr><th>Name</th></tr></thead>
+        <tbody>
+          {#each indexes as ix}
+            <tr><td class="colname">{ix}</td></tr>
+          {:else}
+            <tr><td class="muted pad">No indexes.</td></tr>
           {/each}
         </tbody>
       </table>
@@ -93,7 +131,9 @@
   .meta { color: var(--muted-fg); font-size: 12px; font-family: var(--mono); }
   .content { flex: 1; min-height: 0; }
   .error { padding: 8px 10px; color: #fca5a5; background: rgba(239,68,68,.08); border-bottom: 1px solid rgba(239,68,68,.2); font-size: 12px; }
-  .structure { flex: 1; overflow: auto; }
+  .structure { flex: 1; overflow: auto; padding-bottom: 16px; }
+  .section-title { padding: 10px 12px 6px; font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted-fg); border-top: 1px solid var(--border-subtle); margin-top: 4px; }
+  .section-title:first-child { border-top: 0; margin-top: 0; }
   table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
   th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--border); }
   th { position: sticky; top: 0; background: var(--panel-2); color: var(--muted-fg); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }

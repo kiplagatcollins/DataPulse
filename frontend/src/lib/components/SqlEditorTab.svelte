@@ -7,7 +7,7 @@
   import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
   import { autocompletion, completionKeymap } from "@codemirror/autocomplete";
   import DataGrid from "./DataGrid.svelte";
-  import { executeSql, getDatabases, getTables, getColumns } from "../api";
+  import { executeSql, getDatabases, getTables, getColumns, inspectSql, cancelQuery } from "../api";
   import type { Result } from "../../../bindings/github.com/collins/GoDBClient/internal/models/models";
 
   let { connId, initialSql = "SELECT 1;", onSqlChange = (_: string) => {} }: { connId: string; initialSql?: string; onSqlChange?: (s: string) => void } = $props();
@@ -17,6 +17,7 @@
   let result = $state<Result | null>(null);
   let error = $state<string | null>(null);
   let running = $state(false);
+  let pendingConfirm = $state<{ sql: string; action: string } | null>(null);
 
   const sqlCompartment = new Compartment();
   const schemaCache = new Map<string, Promise<any> | any>();
@@ -34,16 +35,34 @@
     return alt || doc.trim().replace(/;$/, "").trim();
   }
 
-  async function run() {
+  function currentQuery(): string {
+    if (!view) return "";
+    const sel = view.state.sliceDoc(view.state.selection.main.from, view.state.selection.main.to).trim();
+    return sel || statementAtCursor(view.state.doc.toString(), view.state.selection.main.head);
+  }
+
+  async function run(force = false) {
     if (!view) return;
     if (!connId) { error = "No connection selected. Connect to a database from the explorer."; return; }
-    const sel = view.state.sliceDoc(view.state.selection.main.from, view.state.selection.main.to).trim();
-    const q = sel || statementAtCursor(view.state.doc.toString(), view.state.selection.main.head);
+    const q = currentQuery();
     if (!q) { error = "No query to run."; return; }
-    running = true; error = null;
-    try { result = await executeSql(connId, q, 1, 500); }
+    error = null;
+    if (!force) {
+      try {
+        const guard = await inspectSql(q);
+        if (guard?.needsConfirm) { pendingConfirm = { sql: q, action: guard.action || "statement" }; return; }
+      } catch {}
+    }
+    pendingConfirm = null;
+    running = true;
+    try { result = await executeSql(connId, q, 1, 500, force); }
     catch (e) { error = e instanceof Error ? e.message : String(e); result = null; }
     finally { running = false; }
+  }
+
+  async function stop() {
+    if (!connId) return;
+    try { await cancelQuery(connId); } catch {}
   }
 
   async function loadSchema(id: string) {
@@ -86,7 +105,7 @@
   }
 
   onMount(() => {
-    const runKey = keymap.of([{ key: "Mod-Enter", run: () => { void run(); return true; } }]);
+    const runKey = keymap.of([{ key: "Mod-Enter", run: () => { void run(false); return true; } }]);
     const state = EditorState.create({
       doc: initialSql,
       extensions: [
@@ -115,11 +134,22 @@
 
 <div class="sql-tab">
   <div class="toolbar">
-    <button class="run-btn" onclick={run} disabled={running}><span class="run-icon">▶</span>{running ? "Running" : "Run"}</button>
-    <span class="hint">Ctrl/Cmd+Enter</span>
+    {#if running}
+      <button class="stop-btn" onclick={stop}>■ Stop</button>
+    {:else}
+      <button class="run-btn" onclick={() => run(false)}><span class="run-icon">▶</span>Run</button>
+    {/if}
+    <span class="hint">Ctrl/Cmd+Enter runs selection or statement</span>
     <div class="spacer"></div>
     <span class="ctx" class:ok={!!connId}>{connId ? "Connection ready" : "No connection selected"}</span>
   </div>
+  {#if pendingConfirm}
+    <div class="confirm">
+      <span>Destructive <b>{pendingConfirm.action}</b> statement requires confirmation. Run anyway?</span>
+      <button class="confirm-run" onclick={() => run(true)}>Run</button>
+      <button class="confirm-cancel" onclick={() => (pendingConfirm = null)}>Cancel</button>
+    </div>
+  {/if}
   <div class="split">
     <div class="editor-pane">
       <div class="pane-label">Query</div>
@@ -136,13 +166,20 @@
 <style>
   .sql-tab { display: flex; flex-direction: column; height: 100%; min-height: 0; background: var(--bg); }
   .toolbar { height: 40px; display: flex; align-items: center; gap: 10px; padding: 0 10px; border-bottom: 1px solid var(--border); background: var(--panel); }
-  .run-btn { height: 28px; display: inline-flex; align-items: center; gap: 6px; padding: 0 12px; border-radius: 6px; background: var(--accent); color: #fff; border: 1px solid var(--accent); font-size: 12.5px; font-weight: 500; }
+  .run-btn, .stop-btn { height: 28px; display: inline-flex; align-items: center; gap: 6px; padding: 0 12px; border-radius: 6px; color: #fff; font-size: 12.5px; font-weight: 500; }
+  .run-btn { background: var(--accent); border: 1px solid var(--accent); }
   .run-btn:hover { background: var(--accent-hover); }
+  .stop-btn { background: #b91c1c; border: 1px solid #dc2626; }
+  .stop-btn:hover { background: #dc2626; }
   .run-icon { font-size: 10px; }
   .hint { color: var(--muted-fg); font-size: 12px; }
   .spacer { flex: 1; }
   .ctx { font-size: 11.5px; color: var(--muted-fg); padding: 3px 8px; border: 1px solid var(--border); border-radius: 999px; background: var(--panel-2); }
   .ctx.ok { color: #86efac; border-color: rgba(34,197,94,.25); background: rgba(34,197,94,.08); }
+  .confirm { display: flex; align-items: center; gap: 10px; padding: 8px 10px; font-size: 12.5px; color: #fde68a; background: rgba(245,158,11,.1); border-bottom: 1px solid rgba(245,158,11,.25); }
+  .confirm-run, .confirm-cancel { height: 24px; padding: 0 10px; border-radius: 5px; font-size: 12px; }
+  .confirm-run { background: #b45309; color: #fff; border: 1px solid #d97706; }
+  .confirm-cancel { background: var(--panel-2); color: var(--fg); border: 1px solid var(--border); }
   .split { flex: 1; min-height: 0; display: grid; grid-template-rows: minmax(180px, 42%) 1fr; }
   .editor-pane, .results-pane { min-height: 0; display: flex; flex-direction: column; }
   .editor-pane { border-bottom: 1px solid var(--border); }
