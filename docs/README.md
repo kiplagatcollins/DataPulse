@@ -1,5 +1,7 @@
 # DataPulse
 
+<img src="../dblens_app_icon.png" alt="DataPulse logo" width="128" align="right" />
+
 A lightweight, native desktop client for all your databases. DataPulse is a cross-platform application for browsing, querying, and managing relational and key-value databases — connection profiles, a metadata tree, and a SQL editor in a small, fast, native-feeling app with no JVM or Electron runtime.
 
 Built with a **Go backend ([Wails v3](https://v3.wails.io/))** and a **Svelte 5 + Vite + TypeScript** frontend.
