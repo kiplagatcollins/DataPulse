@@ -5,6 +5,7 @@
   import SqlEditorTab from "./lib/components/SqlEditorTab.svelte";
   import TableDataTab from "./lib/components/TableDataTab.svelte";
   import { getConnections, listActive } from "./lib/api";
+  import { loadWorkspace, saveWorkspace, saveWorkspaceNow } from "./lib/workspace";
   import type { Profile } from "../bindings/github.com/collins/GoDBClient/internal/models/models";
 
   type Tab =
@@ -19,12 +20,47 @@
   let tabs = $state<Tab[]>([initialTab]);
   let activeTab = $state(initialTab.id);
 
+  function snapshot() {
+    return {
+      version: 1 as const,
+      tabs: tabs.map((t) => t.kind === "sql"
+        ? { id: t.id, title: t.title, kind: "sql" as const, connId: t.connId, sql: t.sql }
+        : { id: t.id, title: t.title, kind: "table" as const, connId: t.connId, schema: t.schema, table: t.table }),
+      activeTab,
+      seq,
+    };
+  }
+
+  function persist() { saveWorkspace(snapshot()); }
+  function persistNow() { saveWorkspaceNow(snapshot()); }
+
+  $effect(() => { tabs; activeTab; seq; persist(); });
+
   async function refresh() {
     connections = await getConnections();
     try { activeIds = await listActive(); } catch { activeIds = []; }
     if (activeIds.length && tabs.some(t => !t.connId)) {
       tabs = tabs.map(t => t.connId ? t : ({ ...t, connId: activeIds[0] } as Tab));
     }
+  }
+
+  function restore() {
+    const ws = loadWorkspace();
+    if (!ws) return;
+    const ids = new Set(connections.map((c) => c.id));
+    const restored: Tab[] = [];
+    for (const t of ws.tabs) {
+      const connId = ids.has(t.connId) ? t.connId : "";
+      if (t.kind === "sql") {
+        restored.push({ id: t.id, title: t.title, kind: "sql", connId, sql: t.sql ?? "SELECT 1;" });
+      } else if (t.schema && t.table) {
+        restored.push({ id: t.id, title: t.title, kind: "table", connId, schema: t.schema, table: t.table });
+      }
+    }
+    if (restored.length === 0) return;
+    tabs = restored;
+    seq = Math.max(ws.seq, restored.length);
+    activeTab = restored.some((t) => t.id === ws.activeTab) ? ws.activeTab : restored[0].id;
   }
 
   function currentConn(): string {
@@ -56,6 +92,14 @@
     if (t && t.kind === "sql") t.connId = connId;
   }
 
+  function updateSql(id: string, sql: string) {
+    const i = tabs.findIndex((t) => t.id === id && t.kind === "sql");
+    if (i < 0) return;
+    const t = tabs[i];
+    if (t.kind !== "sql" || t.sql === sql) return;
+    tabs = tabs.map((tab) => tab.id === id && tab.kind === "sql" ? { ...tab, sql } : tab);
+  }
+
   function closeTab(id: string) {
     const i = tabs.findIndex(t => t.id === id);
     if (i < 0) return;
@@ -68,7 +112,15 @@
     }
   }
 
-  onMount(() => { void refresh(); });
+  onMount(() => {
+    (async () => {
+      await refresh();
+      restore();
+    })();
+    const onHide = () => persistNow();
+    window.addEventListener("pagehide", onHide);
+    return () => window.removeEventListener("pagehide", onHide);
+  });
 </script>
 
 <div class="ide">
@@ -110,7 +162,7 @@
         {#each tabs as t (t.id)}
           <section class="tabpane" class:show={t.id === activeTab}>
             {#if t.kind === "sql"}
-              <SqlEditorTab connId={t.connId || currentConn()} initialSql={t.sql} />
+              <SqlEditorTab connId={t.connId || currentConn()} initialSql={t.sql} onSqlChange={(s) => updateSql(t.id, s)} />
             {:else}
               <TableDataTab connId={t.connId} schema={t.schema} table={t.table} />
             {/if}
