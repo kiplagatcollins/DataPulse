@@ -45,6 +45,14 @@ export interface ForeignKeyInfo {
 }
 
 /**
+ * GuardDecision describes the safety verdict for a SQL statement.
+ */
+export interface GuardDecision {
+    "action": string;
+    "needsConfirm": boolean;
+}
+
+/**
  * KeyInfo describes a Redis key: type, TTL, and value length.
  */
 export interface KeyInfo {

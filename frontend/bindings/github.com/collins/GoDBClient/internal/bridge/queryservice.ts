@@ -15,10 +15,10 @@ import { Call as $Call, CancellablePromise as $CancellablePromise } from "@wails
 import * as models$0 from "../models/models.js";
 
 /**
- * Cancel stops a running query.
+ * Cancel stops the active query for a connection.
  */
-export function Cancel(queryID: string): $CancellablePromise<void> {
-    return $Call.ByID(1807872789, queryID);
+export function Cancel(connID: string): $CancellablePromise<void> {
+    return $Call.ByID(1807872789, connID);
 }
 
 /**
@@ -26,4 +26,11 @@ export function Cancel(queryID: string): $CancellablePromise<void> {
  */
 export function Execute(req: models$0.QueryRequest): $CancellablePromise<models$0.Result | null> {
     return $Call.ByID(1008654198, req);
+}
+
+/**
+ * Inspect classifies a SQL statement for destructive-guard confirmation.
+ */
+export function Inspect(sql: string): $CancellablePromise<models$0.GuardDecision | null> {
+    return $Call.ByID(2015689757, sql);
 }

@@ -84,6 +84,12 @@ type Result struct {
 	QueryID    string   `json:"queryId"`
 }
 
+// GuardDecision describes the safety verdict for a SQL statement.
+type GuardDecision struct {
+	Action       string `json:"action"`
+	NeedsConfirm bool   `json:"needsConfirm"`
+}
+
 // QueryRequest describes a single query execution.
 type QueryRequest struct {
 	ConnectionID string

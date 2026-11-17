@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/collins/GoDBClient/internal/connpool"
@@ -25,6 +26,7 @@ var (
 type Executor struct {
 	driver  driver.Driver
 	pool    *connpool.Manager
+	mu      sync.Mutex
 	cancels map[string]context.CancelFunc
 }
 
@@ -35,6 +37,11 @@ func NewExecutor(d driver.Driver, p *connpool.Manager) *Executor {
 
 // Execute runs a single statement with guard checks, timeout, and paging.
 func (e *Executor) Execute(ctx context.Context, req models.QueryRequest) (*models.Result, error) {
+	return e.ExecuteWithID(ctx, req, NewQueryID())
+}
+
+// ExecuteWithID runs a single statement with guard checks, timeout, and paging using a caller-provided query ID.
+func (e *Executor) ExecuteWithID(ctx context.Context, req models.QueryRequest, queryID string) (*models.Result, error) {
 	if strings.TrimSpace(req.SQL) == "" {
 		return nil, errors.New("query: sql is required")
 	}
@@ -64,10 +71,28 @@ func (e *Executor) Execute(ctx context.Context, req models.QueryRequest) (*model
 	}
 	ctx, cancel := context.WithTimeout(ctx, req.Timeout)
 	defer cancel()
-	queryID := newQueryID()
+	if strings.TrimSpace(queryID) == "" {
+		queryID = NewQueryID()
+	}
+	e.mu.Lock()
 	e.cancels[queryID] = cancel
-	defer delete(e.cancels, queryID)
+	e.mu.Unlock()
+	defer func() {
+		e.mu.Lock()
+		delete(e.cancels, queryID)
+		e.mu.Unlock()
+	}()
 	start := time.Now()
+	action := strings.ToUpper(strings.TrimSpace(decision.Action))
+	if action != "SELECT" && action != "WITH" && action != "SHOW" && action != "DESCRIBE" && action != "DESC" && action != "EXPLAIN" && action != "PRAGMA" && action != "VALUES" {
+		sqlStmt := strings.TrimSpace(strings.TrimRight(strings.TrimSpace(req.SQL), ";"))
+		res, err := sqlExec.ExecContext(ctx, sqlStmt)
+		if err != nil {
+			return nil, fmt.Errorf("query: %w", err)
+		}
+		affected, _ := res.RowsAffected()
+		return &models.Result{QueryID: queryID, RowCount: affected, DurationMS: time.Since(start).Milliseconds()}, nil
+	}
 	rows, err := sqlExec.QueryContext(ctx, pagingSQL(e.driver.Type(), req.SQL, req.Page, req.PageSize))
 	if err != nil {
 		return nil, fmt.Errorf("query: %w", err)
@@ -100,7 +125,10 @@ func (e *Executor) Execute(ctx context.Context, req models.QueryRequest) (*model
 
 // Cancel stops a running query by its query ID.
 func (e *Executor) Cancel(queryID string) {
-	if cancel, ok := e.cancels[queryID]; ok {
+	e.mu.Lock()
+	cancel, ok := e.cancels[queryID]
+	e.mu.Unlock()
+	if ok {
 		cancel()
 	}
 }
@@ -117,8 +145,8 @@ func pagingSQL(d driver.Type, sql string, page int, pageSize int) string {
 	return fmt.Sprintf("SELECT * FROM (%s) AS _sub LIMIT %d OFFSET %d", sql, int64(pageSize), offset)
 }
 
-// newQueryID returns a random query identifier.
-func newQueryID() string {
+// NewQueryID returns a random query identifier.
+func NewQueryID() string {
 	var b [16]byte
 	if _, err := rand.Read(b[:]); err != nil {
 		return fmt.Sprintf("%d", time.Now().UnixNano())

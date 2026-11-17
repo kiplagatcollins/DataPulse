@@ -2,13 +2,12 @@ package query
 
 import (
 	"strings"
+
+	"github.com/collins/GoDBClient/internal/models"
 )
 
 // GuardDecision describes the safety verdict for a SQL statement.
-type GuardDecision struct {
-	Action       string
-	NeedsConfirm bool
-}
+type GuardDecision = models.GuardDecision
 
 // DestructiveError is returned when a statement requires confirmation.
 type DestructiveError struct {

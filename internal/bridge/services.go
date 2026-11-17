@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"sync"
 
 	"github.com/collins/GoDBClient/internal/config"
 	"github.com/collins/GoDBClient/internal/connpool"
@@ -38,8 +39,10 @@ func (s *ConnectionService) SaveProfile(ctx context.Context, profile *models.Pro
 	if profile.ID == "" {
 		profile.ID = newID()
 	}
-	if err := s.secrets.Set(profile.ID, password); err != nil {
-		return fmt.Errorf("save connection %q: %w", profile.ID, err)
+	if password != "" || profile.Driver == models.DriverSQLite {
+		if err := s.secrets.Set(profile.ID, password); err != nil {
+			return fmt.Errorf("save connection %q: %w", profile.ID, err)
+		}
 	}
 	if err := s.profiles.Save(profile); err != nil {
 		return fmt.Errorf("save connection %q: %w", profile.ID, err)
@@ -157,16 +160,45 @@ func (s *MetadataService) Indexes(ctx context.Context, connID string, schema str
 	return s.Manager.Indexes(ctx, connID, schema, table)
 }
 
+type activeQuery struct {
+	queryID  string
+	executor *query.Executor
+}
+
 // QueryService executes queries against a live connection.
 type QueryService struct {
-	pool     *connpool.Manager
-	registry *driver.Registry
-	profiles config.ProfileStore
+	pool      *connpool.Manager
+	registry  *driver.Registry
+	profiles  config.ProfileStore
+	mu        sync.Mutex
+	executors map[driver.Type]*query.Executor
+	active    map[string]activeQuery
 }
 
 // NewQueryService returns a query service.
 func NewQueryService(p *connpool.Manager, r *driver.Registry, ps config.ProfileStore) *QueryService {
-	return &QueryService{pool: p, registry: r, profiles: ps}
+	return &QueryService{
+		pool:      p,
+		registry:  r,
+		profiles:  ps,
+		executors: map[driver.Type]*query.Executor{},
+		active:    map[string]activeQuery{},
+	}
+}
+
+func (s *QueryService) executorFor(dt driver.Type) (*query.Executor, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if ex, ok := s.executors[dt]; ok {
+		return ex, nil
+	}
+	d, err := s.registry.Get(dt)
+	if err != nil {
+		return nil, err
+	}
+	ex := query.NewExecutor(d, s.pool)
+	s.executors[dt] = ex
+	return ex, nil
 }
 
 // Execute runs a query for the connection referenced by the request.
@@ -175,16 +207,37 @@ func (s *QueryService) Execute(ctx context.Context, req models.QueryRequest) (*m
 	if err != nil {
 		return nil, fmt.Errorf("query: %w", err)
 	}
-	d, err := s.registry.Get(driver.Type(profile.Driver))
+	executor, err := s.executorFor(driver.Type(profile.Driver))
 	if err != nil {
 		return nil, fmt.Errorf("query: %w", err)
 	}
-	executor := query.NewExecutor(d, s.pool)
-	return executor.Execute(ctx, req)
+	queryID := query.NewQueryID()
+	s.mu.Lock()
+	s.active[req.ConnectionID] = activeQuery{queryID: queryID, executor: executor}
+	s.mu.Unlock()
+	defer func() {
+		s.mu.Lock()
+		if cur, ok := s.active[req.ConnectionID]; ok && cur.queryID == queryID {
+			delete(s.active, req.ConnectionID)
+		}
+		s.mu.Unlock()
+	}()
+	return executor.ExecuteWithID(ctx, req, queryID)
 }
 
-// Cancel stops a running query.
-func (s *QueryService) Cancel(ctx context.Context, queryID string) error {
+// Inspect classifies a SQL statement for destructive-guard confirmation.
+func (s *QueryService) Inspect(ctx context.Context, sql string) (*models.GuardDecision, error) {
+	return query.Inspect(sql)
+}
+
+// Cancel stops the active query for a connection.
+func (s *QueryService) Cancel(ctx context.Context, connID string) error {
+	s.mu.Lock()
+	cur, ok := s.active[connID]
+	s.mu.Unlock()
+	if ok {
+		cur.executor.Cancel(cur.queryID)
+	}
 	return nil
 }
 

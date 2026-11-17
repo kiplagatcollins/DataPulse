@@ -8,6 +8,7 @@ export {
 export type {
     ColumnInfo,
     ForeignKeyInfo,
+    GuardDecision,
     KeyInfo,
     Profile,
     QueryRequest,
