@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Profile, TableInfo, ColumnInfo } from "../../../bindings/github.com/collins/GoDBClient/internal/models/models";
-  import { connect, getDatabases, getTables, getColumns, listActive } from "../api";
+  import { connect, disconnect, getDatabases, getTables, getColumns, listActive } from "../api";
 
   let {
     connections,
@@ -9,6 +9,9 @@
     onOpenTable,
     onGenerateSelect,
     onOpenQuery,
+    onEdit,
+    onDuplicate,
+    onDelete,
   }: {
     connections: Profile[];
     onNew: () => void;
@@ -16,6 +19,9 @@
     onOpenTable: (connId: string, schema: string, table: string) => void;
     onGenerateSelect: (connId: string, schema: string, table: string) => void;
     onOpenQuery: (connId: string) => void;
+    onEdit: (p: Profile) => void;
+    onDuplicate: (p: Profile) => void;
+    onDelete: (p: Profile) => void | Promise<void>;
   } = $props();
 
   let active = $state<Set<string>>(new Set());
@@ -28,6 +34,11 @@
   let menu = $state<{ x: number; y: number; connId: string; schema?: string; table?: string } | null>(null);
 
   async function refreshActive() { try { active = new Set(await listActive()); } catch {} }
+
+  async function reconnect(id: string) {
+    try { if (active.has(id)) await disconnect(id); await connect(id); }
+    finally { await refreshActive(); void onRefresh(); }
+  }
 
   async function toggleConn(c: Profile) {
     const k = `c:${c.id}`;
@@ -158,7 +169,13 @@
         <button onclick={() => { onGenerateSelect(menu!.connId, menu!.schema!, menu!.table!); menu = null; }}>Generate SELECT</button>
         <button onclick={() => { navigator.clipboard.writeText(menu!.table!); menu = null; }}>Copy Table Name</button>
       {:else}
+        {@const p = connections.find(c => c.id === menu!.connId)}
         <button onclick={() => { onOpenQuery(menu!.connId); menu = null; }}>New SQL Query</button>
+        <button onclick={() => { void reconnect(menu!.connId); menu = null; }}>{active.has(menu!.connId) ? 'Reconnect' : 'Connect'}</button>
+        {#if active.has(menu!.connId)}<button onclick={() => { void (async () => { await disconnect(menu!.connId); await refreshActive(); })(); menu = null; }}>Disconnect</button>{/if}
+        {#if p}<button onclick={() => { onEdit(p); menu = null; }}>Edit Connection</button>{/if}
+        {#if p}<button onclick={() => { onDuplicate(p); menu = null; }}>Duplicate Connection</button>{/if}
+        {#if p}<button class="danger" onclick={() => { onDelete(p); menu = null; }}>Delete Connection</button>{/if}
       {/if}
     </div>
   {/if}
@@ -200,4 +217,5 @@
   .ctx { position: fixed; z-index: 200; min-width: 190px; background: #1a202b; border: 1px solid var(--border); border-radius: 8px; padding: 4px; box-shadow: var(--shadow); }
   .ctx button { display: block; width: 100%; text-align: left; background: transparent; border: 0; color: var(--fg); padding: 7px 10px; border-radius: 5px; font-size: 12.5px; }
   .ctx button:hover { background: var(--hover); }
+  .ctx button.danger { color: #f87171; }
 </style>

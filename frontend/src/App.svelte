@@ -4,7 +4,7 @@
   import ConnectionModal from "./lib/components/ConnectionModal.svelte";
   import SqlEditorTab from "./lib/components/SqlEditorTab.svelte";
   import TableDataTab from "./lib/components/TableDataTab.svelte";
-  import { getConnections, listActive } from "./lib/api";
+  import { getConnections, listActive, deleteProfile } from "./lib/api";
   import { loadWorkspace, saveWorkspace, saveWorkspaceNow } from "./lib/workspace";
   import type { Profile } from "../bindings/github.com/collins/GoDBClient/internal/models/models";
 
@@ -15,6 +15,7 @@
   let connections = $state<Profile[]>([]);
   let activeIds = $state<string[]>([]);
   let showConn = $state(false);
+  let editingProfile = $state<Profile | null>(null);
   let seq = $state(1);
   const initialTab: Tab = { id: crypto.randomUUID(), title: "SQL 1", kind: "sql", connId: "", sql: "SELECT 1;" };
   let tabs = $state<Tab[]>([initialTab]);
@@ -79,6 +80,18 @@
     newSql("", connId);
   }
 
+  function editConn(p: Profile) { editingProfile = { ...p }; showConn = true; }
+  function duplicateConn(p: Profile) {
+    editingProfile = { ...p, id: "", name: `${p.name} (copy)` };
+    showConn = true;
+  }
+  async function deleteConn(p: Profile) {
+    if (!confirm(`Delete connection "${p.name}"?`)) return;
+    try { await deleteProfile(p.id); } catch {}
+    tabs = tabs.map(t => t.connId === p.id ? ({ ...t, connId: "" } as Tab) : t);
+    await refresh();
+  }
+
   function openTable(connId: string, schema: string, table: string) {
     const t: Tab = { id: crypto.randomUUID(), title: `${schema}.${table}`, kind: "table", connId, schema, table };
     tabs = [...tabs, t];
@@ -112,6 +125,18 @@
     }
   }
 
+  function cycleTab(dir: 1 | -1) {
+    if (tabs.length < 2) return;
+    const i = tabs.findIndex(t => t.id === activeTab);
+    activeTab = tabs[(i + dir + tabs.length) % tabs.length].id;
+  }
+
+  function onKey(e: KeyboardEvent) {
+    if (e.ctrlKey && e.key === "Tab") { e.preventDefault(); cycleTab(e.shiftKey ? -1 : 1); }
+    else if (e.ctrlKey && (e.key === "w" || e.key === "W")) { e.preventDefault(); closeTab(activeTab); }
+    else if (e.ctrlKey && (e.key === "t" || e.key === "T")) { e.preventDefault(); newSql(""); }
+  }
+
   onMount(() => {
     (async () => {
       await refresh();
@@ -119,7 +144,8 @@
     })();
     const onHide = () => persistNow();
     window.addEventListener("pagehide", onHide);
-    return () => window.removeEventListener("pagehide", onHide);
+    window.addEventListener("keydown", onKey);
+    return () => { window.removeEventListener("pagehide", onHide); window.removeEventListener("keydown", onKey); };
   });
 </script>
 
@@ -130,7 +156,7 @@
       <span class="brand-name">GoDBClient</span>
     </div>
     <div class="topbar-actions">
-      <button class="btn primary" onclick={() => (showConn = true)}>+ New Connection</button>
+      <button class="btn primary" onclick={() => { editingProfile = null; showConn = true; }}>+ New Connection</button>
     </div>
   </header>
 
@@ -138,11 +164,14 @@
     <aside class="sidebar">
       <SidebarTree
         {connections}
-        onNew={() => (showConn = true)}
+        onNew={() => { editingProfile = null; showConn = true; }}
         onRefresh={refresh}
         onOpenTable={openTable}
         onGenerateSelect={generateSelect}
         onOpenQuery={openQuery}
+        onEdit={editConn}
+        onDuplicate={duplicateConn}
+        onDelete={deleteConn}
       />
     </aside>
 
@@ -181,7 +210,7 @@
   </div>
 </div>
 
-<ConnectionModal bind:open={showConn} onSaved={refresh} />
+<ConnectionModal bind:open={showConn} onSaved={refresh} profile={editingProfile} />
 
 <style>
   .ide { height: 100%; display: flex; flex-direction: column; background: var(--bg); color: var(--fg); }

@@ -2,7 +2,7 @@
   import type { Profile } from "../../../bindings/github.com/collins/GoDBClient/internal/models/models";
   import { saveConnection, testConnection } from "../api";
 
-  let { open = $bindable(false), onSaved }: { open: boolean; onSaved: () => void | Promise<void> } = $props();
+  let { open = $bindable(false), onSaved, profile = null }: { open: boolean; onSaved: () => void | Promise<void>; profile?: Profile | null } = $props();
 
   function emptyProfile(): Profile {
     return { id: "", name: "", driver: "postgres" as any, host: "localhost", port: 5432, database: "postgres", username: "postgres", sslmode: "prefer", options: null };
@@ -13,6 +13,19 @@
   let sqlitePath = $state("");
   let status = $state<string | null>(null);
   let busy = $state(false);
+  let editing = $state(false);
+
+  $effect(() => {
+    if (!open) return;
+    if (profile) {
+      form = { ...profile };
+      sqlitePath = String(profile.driver) === "sqlite" ? (profile.database ?? "") : "";
+      editing = !!profile.id;
+    } else {
+      form = emptyProfile(); sqlitePath = ""; editing = false;
+    }
+    password = ""; status = null;
+  });
 
   function applyDriverDefaults(driver: string) {
     form.driver = driver as any;
@@ -49,10 +62,10 @@
 
 {#if open}
   <div class="modal-backdrop" role="button" tabindex="0" aria-label="Close dialog" onclick={close} onkeydown={onBackdropKey}>
-    <div class="modal" role="dialog" aria-modal="true" aria-label="New Connection" tabindex="-1" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
+    <div class="modal" role="dialog" aria-modal="true" aria-label={editing ? "Edit Connection" : "New Connection"} tabindex="-1" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
       <header class="modal-head">
         <div>
-          <h3>New Connection</h3>
+          <h3>{editing ? "Edit Connection" : "New Connection"}</h3>
           <p>Configure and save a database connection profile.</p>
         </div>
         <button class="icon-btn" onclick={close} aria-label="Close">×</button>
@@ -77,7 +90,7 @@
           <label class="field"><span>Port</span><input type="number" bind:value={form.port} /></label>
           <label class="field"><span>Database</span><input bind:value={form.database} /></label>
           <label class="field"><span>Username</span><input bind:value={form.username} /></label>
-          <label class="field"><span>Password</span><input type="password" bind:value={password} placeholder="Stored in OS keychain" /></label>
+          <label class="field"><span>Password</span><input type="password" bind:value={password} placeholder={editing ? "Leave blank to keep existing" : "Stored in OS keychain"} /></label>
           <label class="field"><span>SSL Mode</span><input bind:value={form.sslmode} placeholder="prefer / disable / require" /></label>
         {/if}
       </div>
@@ -92,7 +105,7 @@
         <button class="btn secondary" onclick={onTest} disabled={busy || !form.name}>Test Connection</button>
         <div class="spacer"></div>
         <button class="btn ghost" onclick={close} disabled={busy}>Cancel</button>
-        <button class="btn primary" onclick={onSave} disabled={busy || !form.name}>Save Connection</button>
+        <button class="btn primary" onclick={onSave} disabled={busy || !form.name}>{editing ? "Save Changes" : "Save Connection"}</button>
       </footer>
     </div>
   </div>
