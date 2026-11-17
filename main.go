@@ -8,16 +8,16 @@ import (
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 
-	"github.com/collins/GoDBClient/internal/bridge"
-	"github.com/collins/GoDBClient/internal/config"
-	"github.com/collins/GoDBClient/internal/connpool"
-	"github.com/collins/GoDBClient/internal/driver"
-	"github.com/collins/GoDBClient/internal/driver/mysql"
-	"github.com/collins/GoDBClient/internal/driver/oracle"
-	"github.com/collins/GoDBClient/internal/driver/postgres"
-	"github.com/collins/GoDBClient/internal/driver/redis"
-	"github.com/collins/GoDBClient/internal/driver/sqlite"
-	"github.com/collins/GoDBClient/internal/metadata"
+	"github.com/collins/DataPulse/internal/bridge"
+	"github.com/collins/DataPulse/internal/config"
+	"github.com/collins/DataPulse/internal/connpool"
+	"github.com/collins/DataPulse/internal/driver"
+	"github.com/collins/DataPulse/internal/driver/mysql"
+	"github.com/collins/DataPulse/internal/driver/oracle"
+	"github.com/collins/DataPulse/internal/driver/postgres"
+	"github.com/collins/DataPulse/internal/driver/redis"
+	"github.com/collins/DataPulse/internal/driver/sqlite"
+	"github.com/collins/DataPulse/internal/metadata"
 )
 
 //go:embed all:frontend/dist
@@ -26,9 +26,9 @@ var assets embed.FS
 func userConfigPath() string {
 	dir, err := os.UserConfigDir()
 	if err != nil {
-		return filepath.Join("godbclient", "profiles.json")
+		return filepath.Join("datapulse", "profiles.json")
 	}
-	return filepath.Join(dir, "godbclient", "profiles.json")
+	return filepath.Join(dir, "datapulse", "profiles.json")
 }
 
 func main() {
@@ -41,13 +41,13 @@ func main() {
 	registry.Register(oracle.NewDriver())
 	profiles, err := config.NewFileProfileStore(userConfigPath())
 	if err != nil {
-		log.Fatalf("GoDBClient: open profile store: %v", err)
+		log.Fatalf("DataPulse: open profile store: %v", err)
 	}
 	secrets := config.NewKeychainSecretStore()
 	meta := metadata.NewManager(pool)
 
 	app := application.New(application.Options{
-		Name: "GoDBClient",
+		Name: "DataPulse",
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),
 		},
@@ -60,7 +60,7 @@ func main() {
 	})
 
 	app.Window.NewWithOptions(application.WebviewWindowOptions{
-		Title:            "GoDBClient",
+		Title:            "DataPulse",
 		Width:            1200,
 		Height:           800,
 		BackgroundColour: application.NewRGB(15, 17, 23),
@@ -73,6 +73,6 @@ func main() {
 	})
 
 	if err := app.Run(); err != nil {
-		log.Fatalf("GoDBClient failed to start: %v", err)
+		log.Fatalf("DataPulse failed to start: %v", err)
 	}
 }

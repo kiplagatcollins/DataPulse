@@ -7,7 +7,7 @@ export type SavedQuery = {
   updatedAt: number;
 };
 
-const KEY = "godbclient.savedQueries.v1";
+const KEY = "datapulse.savedQueries.v1";
 
 function read(): SavedQuery[] {
   try {

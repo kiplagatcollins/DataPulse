@@ -1,5 +1,5 @@
-import { ConnectionService, MetadataService, QueryService } from "../../bindings/github.com/collins/GoDBClient/internal/bridge";
-import type * as models from "../../bindings/github.com/collins/GoDBClient/internal/models/models";
+import { ConnectionService, MetadataService, QueryService } from "../../bindings/github.com/collins/DataPulse/internal/bridge";
+import type * as models from "../../bindings/github.com/collins/DataPulse/internal/models/models";
 import { Duration } from "../../bindings/time/models";
 
 export async function getConnections(): Promise<models.Profile[]> {

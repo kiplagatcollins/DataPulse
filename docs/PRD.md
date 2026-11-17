@@ -1,12 +1,12 @@
-# GoDBClient — Product Requirements Document
+# DataPulse — Product Requirements Document
 
 Define what you are building, who it is for, and how you will know it works.
 
 ## 1. Product Overview
 
-- **Product name:** GoDBClient
+- **Product name:** DataPulse
 - **Tagline:** A lightweight, native desktop client for all your databases.
-- **Description:** GoDBClient is a cross-platform desktop application for browsing, querying, and managing relational and key-value databases. It pairs a Go backend (Wails v3) with a Svelte UI, delivering DBeaver-style workflow — connection profiles, a metadata tree, and a SQL editor — in a small, fast, native-feeling app with no JVM or Electron runtime.
+- **Description:** DataPulse is a cross-platform desktop application for browsing, querying, and managing relational and key-value databases. It pairs a Go backend (Wails v3) with a Svelte UI, delivering DBeaver-style workflow — connection profiles, a metadata tree, and a SQL editor — in a small, fast, native-feeling app with no JVM or Electron runtime.
 
 ## 2. Problem
 
@@ -88,4 +88,4 @@ Existing universal database clients are heavyweight. DBeaver and its peers ship 
 - Which keychain fallback (if any) for headless/Linux-minimal setups lacking a secret service?
 - Oracle version floor: target 12c+ only (native `OFFSET/FETCH` pagination), or add ROWNUM subqueries for 11g?
 - Should the query grid support inline cell editing in Phase 2, or jump straight to full row-edit forms?
-- Confirm module path (`godbclient` vs GitHub-hosted path) before M1 scaffolding.
+- Confirm module path (`datapulse` vs GitHub-hosted path) before M1 scaffolding.

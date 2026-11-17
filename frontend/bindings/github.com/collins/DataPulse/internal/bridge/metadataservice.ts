@@ -18,33 +18,33 @@ import * as models$0 from "../models/models.js";
  * Columns lists columns for a table.
  */
 export function Columns(connID: string, schema: string, table: string): $CancellablePromise<models$0.ColumnInfo[] | null> {
-    return $Call.ByID(2823363837, connID, schema, table);
+    return $Call.ByID(558298357, connID, schema, table);
 }
 
 /**
  * Databases lists the databases or schemas visible to the connection.
  */
 export function Databases(connID: string): $CancellablePromise<string[] | null> {
-    return $Call.ByID(1924581256, connID);
+    return $Call.ByID(2495679200, connID);
 }
 
 /**
  * ForeignKeys lists foreign keys for a table.
  */
 export function ForeignKeys(connID: string, schema: string, table: string): $CancellablePromise<models$0.ForeignKeyInfo[] | null> {
-    return $Call.ByID(903092858, connID, schema, table);
+    return $Call.ByID(1944134658, connID, schema, table);
 }
 
 /**
  * Indexes lists indexes for a table.
  */
 export function Indexes(connID: string, schema: string, table: string): $CancellablePromise<string[] | null> {
-    return $Call.ByID(2850049162, connID, schema, table);
+    return $Call.ByID(4005570034, connID, schema, table);
 }
 
 /**
  * Tables lists tables and views for a schema.
  */
 export function Tables(connID: string, schema: string): $CancellablePromise<models$0.TableInfo[] | null> {
-    return $Call.ByID(3406603243, connID, schema);
+    return $Call.ByID(902668547, connID, schema);
 }

@@ -1,4 +1,4 @@
-// Package driver defines the database driver abstraction used by GoDBClient.
+// Package driver defines the database driver abstraction used by DataPulse.
 package driver
 
 import (
@@ -6,7 +6,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/collins/GoDBClient/internal/models"
+	"github.com/collins/DataPulse/internal/models"
 )
 
 // Type is the canonical database family identifier.

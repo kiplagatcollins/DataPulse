@@ -8,12 +8,12 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/collins/GoDBClient/internal/config"
-	"github.com/collins/GoDBClient/internal/connpool"
-	"github.com/collins/GoDBClient/internal/driver"
-	"github.com/collins/GoDBClient/internal/metadata"
-	"github.com/collins/GoDBClient/internal/models"
-	"github.com/collins/GoDBClient/internal/query"
+	"github.com/collins/DataPulse/internal/config"
+	"github.com/collins/DataPulse/internal/connpool"
+	"github.com/collins/DataPulse/internal/driver"
+	"github.com/collins/DataPulse/internal/metadata"
+	"github.com/collins/DataPulse/internal/models"
+	"github.com/collins/DataPulse/internal/query"
 )
 
 // ConnectionService coordinates profile and connection lifecycle operations.

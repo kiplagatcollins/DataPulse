@@ -11,9 +11,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/collins/GoDBClient/internal/connpool"
-	"github.com/collins/GoDBClient/internal/driver"
-	"github.com/collins/GoDBClient/internal/models"
+	"github.com/collins/DataPulse/internal/connpool"
+	"github.com/collins/DataPulse/internal/driver"
+	"github.com/collins/DataPulse/internal/models"
 )
 
 var (

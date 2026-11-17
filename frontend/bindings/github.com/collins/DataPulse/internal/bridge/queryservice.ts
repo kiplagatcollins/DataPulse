@@ -18,19 +18,19 @@ import * as models$0 from "../models/models.js";
  * Cancel stops the active query for a connection.
  */
 export function Cancel(connID: string): $CancellablePromise<void> {
-    return $Call.ByID(1807872789, connID);
+    return $Call.ByID(4004686061, connID);
 }
 
 /**
  * Execute runs a query for the connection referenced by the request.
  */
 export function Execute(req: models$0.QueryRequest): $CancellablePromise<models$0.Result | null> {
-    return $Call.ByID(1008654198, req);
+    return $Call.ByID(4157881166, req);
 }
 
 /**
  * Inspect classifies a SQL statement for destructive-guard confirmation.
  */
 export function Inspect(sql: string): $CancellablePromise<models$0.GuardDecision | null> {
-    return $Call.ByID(2015689757, sql);
+    return $Call.ByID(1308957861, sql);
 }

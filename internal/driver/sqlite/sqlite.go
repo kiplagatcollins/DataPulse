@@ -1,4 +1,4 @@
-// Package sqlite implements the SQLite driver for GoDBClient.
+// Package sqlite implements the SQLite driver for DataPulse.
 package sqlite
 
 import (
@@ -6,8 +6,8 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/collins/GoDBClient/internal/driver"
-	"github.com/collins/GoDBClient/internal/models"
+	"github.com/collins/DataPulse/internal/driver"
+	"github.com/collins/DataPulse/internal/models"
 	_ "modernc.org/sqlite"
 )
 

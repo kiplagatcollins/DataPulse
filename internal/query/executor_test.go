@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/collins/GoDBClient/internal/connpool"
-	"github.com/collins/GoDBClient/internal/driver"
-	"github.com/collins/GoDBClient/internal/driver/sqlite"
-	"github.com/collins/GoDBClient/internal/models"
+	"github.com/collins/DataPulse/internal/connpool"
+	"github.com/collins/DataPulse/internal/driver"
+	"github.com/collins/DataPulse/internal/driver/sqlite"
+	"github.com/collins/DataPulse/internal/models"
 )
 
 func TestExecutorDestructiveGuardAndExecute(t *testing.T) {

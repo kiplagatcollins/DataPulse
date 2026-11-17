@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/collins/GoDBClient/internal/models"
+	"github.com/collins/DataPulse/internal/models"
 )
 
 // fileProfileStore persists profiles to a JSON file.

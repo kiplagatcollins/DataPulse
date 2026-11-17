@@ -1,4 +1,4 @@
-// Package postgres implements the PostgreSQL driver for GoDBClient.
+// Package postgres implements the PostgreSQL driver for DataPulse.
 package postgres
 
 import (
@@ -6,14 +6,14 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/collins/GoDBClient/internal/driver"
-	"github.com/collins/GoDBClient/internal/models"
+	"github.com/collins/DataPulse/internal/driver"
+	"github.com/collins/DataPulse/internal/models"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/zalando/go-keyring"
 )
 
 const (
-	serviceName     = "GoDBClient"
+	serviceName     = "DataPulse"
 	defaultHost     = "localhost"
 	defaultPort     = 5432
 	defaultDatabase = "postgres"

@@ -1,10 +1,10 @@
-# GoDBClient — Architecture
+# DataPulse — Architecture
 
 Explain how the system is structured and how the pieces connect.
 
 ## 1. System Overview
 
-GoDBClient is a desktop application with a strict two-process split inside one binary: a Svelte (Vite) frontend rendered in the OS webview, and a Go backend wired through Wails v3 services. All database knowledge lives in a UI-agnostic core (`internal/driver`, `internal/connpool`, `internal/config`, `internal/metadata`, `internal/query`); the `internal/bridge` package is the only code that knows about Wails. SQL engines (PostgreSQL, MySQL, SQLite, Oracle) speak `database/sql` behind a uniform `Driver` interface; Redis is a separate `KV` capability on the same `Conn` handle. A thin `Catalog` interface normalizes metadata so the sidebar tree is identical across engines.
+DataPulse is a desktop application with a strict two-process split inside one binary: a Svelte (Vite) frontend rendered in the OS webview, and a Go backend wired through Wails v3 services. All database knowledge lives in a UI-agnostic core (`internal/driver`, `internal/connpool`, `internal/config`, `internal/metadata`, `internal/query`); the `internal/bridge` package is the only code that knows about Wails. SQL engines (PostgreSQL, MySQL, SQLite, Oracle) speak `database/sql` behind a uniform `Driver` interface; Redis is a separate `KV` capability on the same `Conn` handle. A thin `Catalog` interface normalizes metadata so the sidebar tree is identical across engines.
 
 ```text
 [Svelte UI] → [Wails bindings] → [bridge services] → [metadata / query services]
@@ -36,9 +36,9 @@ GoDBClient is a desktop application with a strict two-process split inside one b
 ## 3. Project Structure
 
 ```text
-GoDBClient/
+DataPulse/
 ├── main.go                        # Wails bootstrap: register services, create window
-├── go.mod                         # module godbclient
+├── go.mod                         # module datapulse
 ├── Taskfile.yml                   # wails3 build system
 ├── build/                         # icons, platform assets (wails3 generated)
 ├── frontend/
@@ -76,7 +76,7 @@ GoDBClient/
 
 - `internal/driver/` — defines `Driver`, `Conn`, `Catalog`, `KV` interfaces and the registry; each subpackage registers itself in `init()` via blank imports in `main.go`. Owns DSN construction and dialect differences. Must not import Wails, config, or bridge.
 - `internal/connpool/` — owns open connections keyed by profile ID; enforces connect-timeout pings and `*sql.DB` tuning (max open/idle, 30 min lifetime). Must not parse SQL or touch UI types.
-- `internal/config/` — profile CRUD against `<UserConfigDir>/godbclient/connections.json`; delegates secrets to a `SecretStore` (keychain). Must never persist passwords in JSON.
+- `internal/config/` — profile CRUD against `<UserConfigDir>/datapulse/connections.json`; delegates secrets to a `SecretStore` (keychain). Must never persist passwords in JSON.
 - `internal/metadata/` — calls `Conn.Catalog()` and shapes tree responses; caches per-connection metadata until refresh.
 - `internal/query/` — executes statements: guard check → timeout context → `QueryContext` with dialect paging → JSON-safe row scanning → cancel registry (`queryID → cancelFunc`). Must not know about Wails.
 - `internal/bridge/` — Wails service structs; translate binding calls to core services and core errors to strings. No business logic.

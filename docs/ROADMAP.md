@@ -1,6 +1,6 @@
-# GoDBClient Roadmap & Gap Analysis
+# DataPulse Roadmap & Gap Analysis
 
-Gap analysis and implementation phases comparing GoDBClient to DBeaver and [dbdelve](https://github.com/ShayanAbbas1/dbdelve) (reference). Updated after Phase 1 cheap-wins implementation.
+Gap analysis and implementation phases comparing DataPulse to DBeaver and [dbdelve](https://github.com/ShayanAbbas1/dbdelve) (reference). Updated after Phase 1 cheap-wins implementation.
 
 ## What we already have
 

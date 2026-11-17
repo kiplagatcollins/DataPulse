@@ -5,8 +5,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/collins/GoDBClient/internal/connpool"
-	"github.com/collins/GoDBClient/internal/models"
+	"github.com/collins/DataPulse/internal/connpool"
+	"github.com/collins/DataPulse/internal/models"
 )
 
 // Manager resolves metadata for a live connection.

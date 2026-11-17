@@ -1,4 +1,4 @@
-// Package redis implements the Redis driver for GoDBClient.
+// Package redis implements the Redis driver for DataPulse.
 package redis
 
 import (
@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/collins/GoDBClient/internal/driver"
-	"github.com/collins/GoDBClient/internal/models"
+	"github.com/collins/DataPulse/internal/driver"
+	"github.com/collins/DataPulse/internal/models"
 	"github.com/redis/go-redis/v9"
 )
 

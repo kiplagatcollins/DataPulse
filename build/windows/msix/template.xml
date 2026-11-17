@@ -8,7 +8,7 @@
         AllowPromptForPassword="false">
     </Settings>
     <Installer
-        Path="godbclient"
+        Path="datapulse"
         Arguments=""
         InstallLocation="C:\Program Files\My Company\My Product">
     </Installer>
@@ -18,17 +18,17 @@
         PublisherName="CN=My Company"
         PublisherDisplayName="My Company"
         Version="0.1.0.0"
-        PackageDescription="A GoDBClient application">
+        PackageDescription="A DataPulse application">
         <Capabilities>
             <Capability Name="runFullTrust" />
             
         </Capabilities>
         <Applications>
             <Application
-                Id="com.cokikipla.godbclient"
-                Description="A GoDBClient application"
+                Id="com.cokikipla.datapulse"
+                Description="A DataPulse application"
                 DisplayName="My Product"
-                ExecutableName="godbclient"
+                ExecutableName="datapulse"
                 EntryPoint="Windows.FullTrustApplication">
                 
             </Application>
@@ -43,11 +43,11 @@
             <Framework>false</Framework>
             <DisplayName>My Product</DisplayName>
             <PublisherDisplayName>My Company</PublisherDisplayName>
-            <Description>A GoDBClient application</Description>
+            <Description>A DataPulse application</Description>
             <Logo>Assets\AppIcon.png</Logo>
         </Properties>
     </PackageInformation>
-    <SaveLocation PackagePath="godbclient.msix" />
+    <SaveLocation PackagePath="datapulse.msix" />
     <PackageIntegrity>
         <CertificatePath></CertificatePath>
     </PackageIntegrity>

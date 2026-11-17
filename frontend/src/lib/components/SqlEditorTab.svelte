@@ -11,7 +11,7 @@
   import { executeSql, getDatabases, getTables, getColumns, inspectSql, cancelQuery } from "../api";
   import { addHistory } from "../history";
   import { saveQuery } from "../savedQueries";
-  import type { Result } from "../../../bindings/github.com/collins/GoDBClient/internal/models/models";
+  import type { Result } from "../../../bindings/github.com/collins/DataPulse/internal/models/models";
 
   let { connId, initialSql = "SELECT 1;", onSqlChange = (_: string) => {}, onSavedQuery = () => {} }: { connId: string; initialSql?: string; onSqlChange?: (s: string) => void; onSavedQuery?: () => void } = $props();
 
@@ -69,7 +69,7 @@
       error = msg; result = null;
       addHistory({ connId, sql: q, status: cancelled ? "cancelled" : "error", durationMs: Date.now() - started, error: msg });
     }
-    finally { running = false; window.dispatchEvent(new Event("godbclient:history")); }
+    finally { running = false; window.dispatchEvent(new Event("datapulse:history")); }
   }
 
   async function stop() {
@@ -97,7 +97,7 @@
     if (!name) return;
     saveQuery({ name: name.trim(), sql: q, connId: connId || "" });
     onSavedQuery();
-    window.dispatchEvent(new Event("godbclient:saved"));
+    window.dispatchEvent(new Event("datapulse:saved"));
   }
 
   async function loadSchema(id: string) {

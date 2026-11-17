@@ -2,7 +2,7 @@
   import { onMount } from "svelte";
   import DataGrid from "./DataGrid.svelte";
   import { executeSql, getColumns, getForeignKeys, getIndexes } from "../api";
-  import type { Result, ColumnInfo, ForeignKeyInfo } from "../../../bindings/github.com/collins/GoDBClient/internal/models/models";
+  import type { Result, ColumnInfo, ForeignKeyInfo } from "../../../bindings/github.com/collins/DataPulse/internal/models/models";
 
   let { connId, schema, table }: { connId: string; schema: string; table: string } = $props();
 

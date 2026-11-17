@@ -1,4 +1,4 @@
-# Gap Analysis — dbdelve (reference) + DBeaver vs. GoDBClient
+# Gap Analysis — dbdelve (reference) + DBeaver vs. DataPulse
 
 As it stands today. Status per item verified against the codebase (commit `5f5c591`).
 Cross-reference: [`ROADMAP.md`](ROADMAP.md) for phased implementation detail.

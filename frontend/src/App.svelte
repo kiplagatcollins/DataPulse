@@ -6,7 +6,7 @@
   import TableDataTab from "./lib/components/TableDataTab.svelte";
   import { getConnections, listActive, deleteProfile } from "./lib/api";
   import { loadWorkspace, saveWorkspace, saveWorkspaceNow } from "./lib/workspace";
-  import type { Profile } from "../bindings/github.com/collins/GoDBClient/internal/models/models";
+  import type { Profile } from "../bindings/github.com/collins/DataPulse/internal/models/models";
 
   type Tab =
     | { id: string; title: string; kind: "sql"; connId: string; sql: string }
@@ -157,7 +157,7 @@
   <header class="topbar">
     <div class="brand">
       <span class="brand-mark"></span>
-      <span class="brand-name">GoDBClient</span>
+      <span class="brand-name">DataPulse</span>
     </div>
     <div class="topbar-actions">
       <button class="btn primary" onclick={() => { editingProfile = null; showConn = true; }}>+ New Connection</button>

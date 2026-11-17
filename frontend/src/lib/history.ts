@@ -11,7 +11,7 @@ export type HistoryEntry = {
   error?: string;
 };
 
-const KEY = "godbclient.history.v1";
+const KEY = "datapulse.history.v1";
 const MAX = 300;
 
 function read(): HistoryEntry[] {

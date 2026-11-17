@@ -1,10 +1,10 @@
-# GoDBClient — Design System
+# DataPulse — Design System
 
 Define the visual language so UI work stays consistent.
 
 ## 1. Overview
 
-- **Brand:** GoDBClient
+- **Brand:** DataPulse
 - **Direction:** dark-first, data-dense, calm developer tool — the UI recedes so data and SQL stand out.
 - **Source of truth:** `frontend/src/lib/theme.css` (CSS custom properties defined here; Svelte components consume tokens only).
 

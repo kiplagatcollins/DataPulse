@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import type { Profile, TableInfo, ColumnInfo } from "../../../bindings/github.com/collins/GoDBClient/internal/models/models";
+  import type { Profile, TableInfo, ColumnInfo } from "../../../bindings/github.com/collins/DataPulse/internal/models/models";
   import { connect, disconnect, getDatabases, getTables, getColumns, listActive } from "../api";
   import { listHistory, clearHistory, type HistoryEntry } from "../history";
   import { listSavedQueries, deleteSavedQuery, type SavedQuery } from "../savedQueries";
@@ -101,9 +101,9 @@
   onMount(() => {
     refreshLists();
     const h = () => refreshLists(); const s = () => refreshLists();
-    window.addEventListener("godbclient:history", h);
-    window.addEventListener("godbclient:saved", s);
-    return () => { window.removeEventListener("godbclient:history", h); window.removeEventListener("godbclient:saved", s); };
+    window.addEventListener("datapulse:history", h);
+    window.addEventListener("datapulse:saved", s);
+    return () => { window.removeEventListener("datapulse:history", h); window.removeEventListener("datapulse:saved", s); };
   });
 </script>
 
@@ -222,7 +222,7 @@
                 <div class="list-text">{q.name}</div>
                 <div class="list-meta">{connName(q.connId)}</div>
               </div>
-              <button class="del-btn" title="Delete" onclick={(e) => { e.stopPropagation(); deleteSavedQuery(q.id); refreshLists(); window.dispatchEvent(new Event('godbclient:saved')); }}>×</button>
+              <button class="del-btn" title="Delete" onclick={(e) => { e.stopPropagation(); deleteSavedQuery(q.id); refreshLists(); window.dispatchEvent(new Event('datapulse:saved')); }}>×</button>
             </div>
           {:else}
             <div class="node meta" style="--d:0">No saved queries</div>

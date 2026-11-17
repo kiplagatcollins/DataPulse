@@ -1,11 +1,11 @@
 <script lang="ts">
-  import type { Profile } from "../../../bindings/github.com/collins/GoDBClient/internal/models/models";
+  import type { Profile } from "../../../bindings/github.com/collins/DataPulse/internal/models/models";
   import { saveConnection, testConnection } from "../api";
 
   let { open = $bindable(false), onSaved, profile = null }: { open: boolean; onSaved: () => void | Promise<void>; profile?: Profile | null } = $props();
 
   function emptyProfile(): Profile {
-    return { id: "", name: "", driver: "postgres" as any, host: "localhost", port: 5432, database: "postgres", username: "postgres", sslmode: "prefer", options: null };
+    return { id: "", name: "", driver: "postgres" as any, host: "localhost", port: 5432, database: "postgres", username: "postgres", sslmode: "prefer", options: undefined };
   }
 
   let form = $state<Profile>(emptyProfile());

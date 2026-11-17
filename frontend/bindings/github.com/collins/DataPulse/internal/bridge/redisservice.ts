@@ -18,26 +18,26 @@ import * as models$0 from "../models/models.js";
  * Exec runs a raw key-value command.
  */
 export function Exec(connID: string, args: string[] | null): $CancellablePromise<string[] | null> {
-    return $Call.ByID(3415345249, connID, args);
+    return $Call.ByID(1561119177, connID, args);
 }
 
 /**
  * GetValue returns a single key value.
  */
 export function GetValue(connID: string, key: string): $CancellablePromise<models$0.ValueView> {
-    return $Call.ByID(3673476605, connID, key);
+    return $Call.ByID(415367301, connID, key);
 }
 
 /**
  * KeyInfo returns metadata for a single key.
  */
 export function KeyInfo(connID: string, key: string): $CancellablePromise<models$0.KeyInfo> {
-    return $Call.ByID(18942083, connID, key);
+    return $Call.ByID(1524648155, connID, key);
 }
 
 /**
  * ScanKeys lists keys matching a pattern using cursor-based scan.
  */
 export function ScanKeys(connID: string, pattern: string, cursor: number, count: number): $CancellablePromise<[string[] | null, number]> {
-    return $Call.ByID(923871841, connID, pattern, cursor, count);
+    return $Call.ByID(2817224265, connID, pattern, cursor, count);
 }

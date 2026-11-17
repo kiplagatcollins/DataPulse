@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/collins/GoDBClient/internal/models"
+	"github.com/collins/DataPulse/internal/models"
 )
 
 func TestFileProfileStoreSaveGetListDelete(t *testing.T) {

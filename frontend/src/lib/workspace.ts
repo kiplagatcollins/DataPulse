@@ -15,7 +15,7 @@ export type WorkspaceState = {
   seq: number;
 };
 
-const KEY = "godbclient.workspace.v1";
+const KEY = "datapulse.workspace.v1";
 
 export function loadWorkspace(): WorkspaceState | null {
   try {

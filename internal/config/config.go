@@ -2,7 +2,7 @@
 package config
 
 import (
-	"github.com/collins/GoDBClient/internal/models"
+	"github.com/collins/DataPulse/internal/models"
 )
 
 // SecretStore provides credential persistence via the OS keychain.

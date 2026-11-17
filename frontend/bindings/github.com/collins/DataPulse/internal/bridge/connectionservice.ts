@@ -18,47 +18,47 @@ import * as models$0 from "../models/models.js";
  * Connect opens a connection for a saved profile and registers it in the pool.
  */
 export function Connect(id: string): $CancellablePromise<void> {
-    return $Call.ByID(3376892027, id);
+    return $Call.ByID(793219731, id);
 }
 
 /**
  * DeleteProfile removes a connection profile and its keychain secret.
  */
 export function DeleteProfile(id: string): $CancellablePromise<void> {
-    return $Call.ByID(2463706193, id);
+    return $Call.ByID(2264390009, id);
 }
 
 /**
  * Disconnect closes the live connection for a profile.
  */
 export function Disconnect(id: string): $CancellablePromise<void> {
-    return $Call.ByID(3782276765, id);
+    return $Call.ByID(3840839381, id);
 }
 
 /**
  * ListActive returns the IDs of live connections.
  */
 export function ListActive(): $CancellablePromise<string[] | null> {
-    return $Call.ByID(2811848993);
+    return $Call.ByID(3182302537);
 }
 
 /**
  * ListProfiles returns all saved connection profiles.
  */
 export function ListProfiles(): $CancellablePromise<(models$0.Profile | null)[] | null> {
-    return $Call.ByID(4168111001);
+    return $Call.ByID(654823393);
 }
 
 /**
  * SaveProfile persists a connection profile and its keychain secret.
  */
 export function SaveProfile(profile: models$0.Profile | null, password: string): $CancellablePromise<void> {
-    return $Call.ByID(2620496799, profile, password);
+    return $Call.ByID(2576073271, profile, password);
 }
 
 /**
  * TestConnection verifies connectivity with a bounded timeout.
  */
 export function TestConnection(profile: models$0.Profile | null, password: string): $CancellablePromise<void> {
-    return $Call.ByID(821874803, profile, password);
+    return $Call.ByID(485591179, profile, password);
 }

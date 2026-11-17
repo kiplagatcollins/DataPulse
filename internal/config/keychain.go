@@ -3,7 +3,7 @@ package config
 
 import "github.com/zalando/go-keyring"
 
-const serviceName = "GoDBClient"
+const serviceName = "DataPulse"
 
 // keychainSecretStore persists credentials via the OS keychain.
 type keychainSecretStore struct{}

@@ -3,26 +3,26 @@
 #
 # The lines below are called `modelines`. See `:help modeline`
 
-name: "godbclient"
+name: "datapulse"
 arch: ${GOARCH}
 platform: "linux"
 version: "0.1.0"
 section: "default"
 priority: "extra"
 maintainer: ${GIT_COMMITTER_NAME} <${GIT_COMMITTER_EMAIL}>
-description: "A GoDBClient application"
+description: "A DataPulse application"
 vendor: "My Company"
 homepage: "https://wails.io"
 license: "MIT"
 release: "1"
 
 contents:
-  - src: "./bin/godbclient"
-    dst: "/usr/local/bin/godbclient"
+  - src: "./bin/datapulse"
+    dst: "/usr/local/bin/datapulse"
   - src: "./build/appicon.png"
-    dst: "/usr/share/icons/hicolor/128x128/apps/godbclient.png"
-  - src: "./build/linux/godbclient.desktop"
-    dst: "/usr/share/applications/godbclient.desktop"
+    dst: "/usr/share/icons/hicolor/128x128/apps/datapulse.png"
+  - src: "./build/linux/datapulse.desktop"
+    dst: "/usr/share/applications/datapulse.desktop"
 
 # Default dependencies for the GTK4 + WebKitGTK 6.0 stack (Ubuntu 24.04+ / Debian 13+)
 depends:

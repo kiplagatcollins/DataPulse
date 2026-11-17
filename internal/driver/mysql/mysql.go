@@ -1,4 +1,4 @@
-// Package mysql implements the MySQL driver for GoDBClient.
+// Package mysql implements the MySQL driver for DataPulse.
 package mysql
 
 import (
@@ -6,14 +6,14 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/collins/GoDBClient/internal/driver"
-	"github.com/collins/GoDBClient/internal/models"
+	"github.com/collins/DataPulse/internal/driver"
+	"github.com/collins/DataPulse/internal/models"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/zalando/go-keyring"
 )
 
 const (
-	serviceName = "GoDBClient"
+	serviceName = "DataPulse"
 	defaultHost = "localhost"
 	defaultPort = 3306
 	defaultDB   = "mysql"

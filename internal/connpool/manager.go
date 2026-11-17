@@ -6,7 +6,7 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/collins/GoDBClient/internal/driver"
+	"github.com/collins/DataPulse/internal/driver"
 )
 
 var ErrNotConnected = errors.New("not connected")

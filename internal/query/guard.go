@@ -3,7 +3,7 @@ package query
 import (
 	"strings"
 
-	"github.com/collins/GoDBClient/internal/models"
+	"github.com/collins/DataPulse/internal/models"
 )
 
 // GuardDecision describes the safety verdict for a SQL statement.

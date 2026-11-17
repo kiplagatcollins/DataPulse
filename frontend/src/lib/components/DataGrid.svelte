@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Result } from "../../../bindings/github.com/collins/GoDBClient/internal/models/models";
+  import type { Result } from "../../../bindings/github.com/collins/DataPulse/internal/models/models";
 
   let { result }: { result: Result | null } = $props();
 

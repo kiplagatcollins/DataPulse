@@ -1,4 +1,4 @@
-# GoDBClient — Agent Instructions
+# DataPulse — Agent Instructions
 
 Guidelines for AI coding agents working on this project.
 

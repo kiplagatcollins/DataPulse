@@ -1,13 +1,13 @@
 [Desktop Entry]
 Version=1.0
 Name=My Product
-Comment=A GoDBClient application
+Comment=A DataPulse application
 # The Exec line includes %u to pass the URL to the application
-Exec=/usr/local/bin/godbclient %u
+Exec=/usr/local/bin/datapulse %u
 Terminal=false
 Type=Application
-Icon=godbclient
+Icon=datapulse
 Categories=Utility;
-StartupWMClass=godbclient
+StartupWMClass=datapulse
 
  

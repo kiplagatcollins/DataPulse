@@ -1,4 +1,4 @@
-// Package oracle implements the Oracle driver for GoDBClient.
+// Package oracle implements the Oracle driver for DataPulse.
 package oracle
 
 import (
@@ -6,14 +6,14 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/collins/GoDBClient/internal/driver"
-	"github.com/collins/GoDBClient/internal/models"
+	"github.com/collins/DataPulse/internal/driver"
+	"github.com/collins/DataPulse/internal/models"
 	go_ora "github.com/sijms/go-ora/v2"
 	"github.com/zalando/go-keyring"
 )
 
 const (
-	serviceName = "GoDBClient"
+	serviceName = "DataPulse"
 	defaultHost = "localhost"
 	defaultPort = 1521
 	defaultSvc  = "xe"
