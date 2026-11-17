@@ -3,6 +3,33 @@
 
   let { result }: { result: Result | null } = $props();
 
+  let sortCol = $state<number | null>(null);
+  let sortDir = $state<"asc" | "desc">("asc");
+
+  $effect(() => { result; sortCol = null; sortDir = "asc"; });
+
+  function toggleSort(i: number) {
+    if (sortCol !== i) { sortCol = i; sortDir = "asc"; }
+    else if (sortDir === "asc") sortDir = "desc";
+    else { sortCol = null; sortDir = "asc"; }
+  }
+
+  function cmp(a: unknown, b: unknown): number {
+    if (a === null || a === undefined) return b === null || b === undefined ? 0 : 1;
+    if (b === null || b === undefined) return -1;
+    if (typeof a === "number" && typeof b === "number") return a - b;
+    const na = Number(a), nb = Number(b);
+    if (!Number.isNaN(na) && !Number.isNaN(nb) && String(a).trim() !== "" && String(b).trim() !== "") return na - nb;
+    return String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: "base" });
+  }
+
+  let viewRows = $derived.by(() => {
+    const rows = result?.rows ?? [];
+    if (sortCol === null) return rows;
+    const dir = sortDir === "asc" ? 1 : -1;
+    return [...rows].sort((ra, rb) => dir * cmp(ra?.[sortCol!], rb?.[sortCol!]));
+  });
+
   function exportCsv() {
     if (!result) return;
     const cols = result.columns ?? [];
@@ -52,12 +79,14 @@
           <tr>
             <th class="rownum">#</th>
             {#each result.columns ?? [] as col, i (i)}
-              <th title={col}>{col}</th>
+              <th title={col} class="sortable" onclick={() => toggleSort(i)}>
+                <span class="th-inner">{col}{#if sortCol === i}<span class="sort-ind">{sortDir === "asc" ? " ▲" : " ▼"}</span>{/if}</span>
+              </th>
             {/each}
           </tr>
         </thead>
         <tbody>
-          {#each result.rows ?? [] as row, ri (ri)}
+          {#each viewRows as row, ri (ri)}
             <tr>
               <td class="rownum">{ri + 1}</td>
               {#each (row ?? []) as cell, ci (ci)}
@@ -105,6 +134,10 @@
   table { width: max-content; min-width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12.5px; font-family: var(--mono); }
   th, td { padding: 6px 10px; border-bottom: 1px solid var(--border-subtle); border-right: 1px solid var(--border-subtle); text-align: left; white-space: nowrap; max-width: 420px; overflow: hidden; text-overflow: ellipsis; }
   th { position: sticky; top: 0; z-index: 2; background: #1a202b; color: #c9d1d9; font-family: var(--sans); font-size: 11.5px; font-weight: 600; border-bottom: 1px solid var(--border); }
+  th.sortable { cursor: pointer; user-select: none; }
+  th.sortable:hover { background: #202838; }
+  .th-inner { display: inline-flex; align-items: center; gap: 2px; }
+  .sort-ind { color: var(--accent); font-size: 10px; }
   td { color: var(--fg); }
   .rownum { width: 46px; min-width: 46px; max-width: 46px; text-align: right; color: var(--muted-fg); background: var(--bg-elev); position: sticky; left: 0; z-index: 1; border-right: 1px solid var(--border); }
   th.rownum { z-index: 3; background: #1a202b; }
