@@ -6,11 +6,14 @@
   import { oneDark } from "@codemirror/theme-one-dark";
   import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
   import { autocompletion, completionKeymap } from "@codemirror/autocomplete";
+  import { format as formatSql } from "sql-formatter";
   import DataGrid from "./DataGrid.svelte";
   import { executeSql, getDatabases, getTables, getColumns, inspectSql, cancelQuery } from "../api";
+  import { addHistory } from "../history";
+  import { saveQuery } from "../savedQueries";
   import type { Result } from "../../../bindings/github.com/collins/GoDBClient/internal/models/models";
 
-  let { connId, initialSql = "SELECT 1;", onSqlChange = (_: string) => {} }: { connId: string; initialSql?: string; onSqlChange?: (s: string) => void } = $props();
+  let { connId, initialSql = "SELECT 1;", onSqlChange = (_: string) => {}, onSavedQuery = () => {} }: { connId: string; initialSql?: string; onSqlChange?: (s: string) => void; onSavedQuery?: () => void } = $props();
 
   let host: HTMLDivElement;
   let view: EditorView | null = null;
@@ -55,14 +58,46 @@
     }
     pendingConfirm = null;
     running = true;
-    try { result = await executeSql(connId, q, 1, 500, force); }
-    catch (e) { error = e instanceof Error ? e.message : String(e); result = null; }
-    finally { running = false; }
+    const started = Date.now();
+    try {
+      result = await executeSql(connId, q, 1, 500, force);
+      addHistory({ connId, sql: q, status: "ok", durationMs: result?.durationMs ?? (Date.now() - started), rowCount: result?.rowCount });
+    }
+    catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      const cancelled = /cancel/i.test(msg) || /context canceled/i.test(msg);
+      error = msg; result = null;
+      addHistory({ connId, sql: q, status: cancelled ? "cancelled" : "error", durationMs: Date.now() - started, error: msg });
+    }
+    finally { running = false; window.dispatchEvent(new Event("godbclient:history")); }
   }
 
   async function stop() {
     if (!connId) return;
     try { await cancelQuery(connId); } catch {}
+  }
+
+  function formatCurrent() {
+    if (!view) return;
+    const sel = view.state.selection.main;
+    const hasSel = sel.from !== sel.to;
+    const target = hasSel ? view.state.sliceDoc(sel.from, sel.to) : view.state.doc.toString();
+    try {
+      const formatted = formatSql(target, { language: "sql", tabWidth: 2, keywordCase: "upper" });
+      if (hasSel) view.dispatch({ changes: { from: sel.from, to: sel.to, insert: formatted } });
+      else view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: formatted } });
+    } catch {}
+  }
+
+  function saveCurrent() {
+    if (!view) return;
+    const q = currentQuery() || view.state.doc.toString().trim();
+    if (!q) return;
+    const name = prompt("Save query as:", q.split("\n")[0].slice(0, 40) || "Query");
+    if (!name) return;
+    saveQuery({ name: name.trim(), sql: q, connId: connId || "" });
+    onSavedQuery();
+    window.dispatchEvent(new Event("godbclient:saved"));
   }
 
   async function loadSchema(id: string) {
@@ -105,7 +140,10 @@
   }
 
   onMount(() => {
-    const runKey = keymap.of([{ key: "Mod-Enter", run: () => { void run(false); return true; } }]);
+    const runKey = keymap.of([
+      { key: "Mod-Enter", run: () => { void run(false); return true; } },
+      { key: "Shift-Mod-f", run: () => { formatCurrent(); return true; } },
+    ]);
     const state = EditorState.create({
       doc: initialSql,
       extensions: [
@@ -139,7 +177,9 @@
     {:else}
       <button class="run-btn" onclick={() => run(false)}><span class="run-icon">▶</span>Run</button>
     {/if}
-    <span class="hint">Ctrl/Cmd+Enter runs selection or statement</span>
+    <button class="tool-btn" onclick={formatCurrent} title="Format SQL (Ctrl/Cmd+Shift+F)">Format</button>
+    <button class="tool-btn" onclick={saveCurrent} title="Save query">Save</button>
+    <span class="hint">Ctrl/Cmd+Enter run · Ctrl/Cmd+Shift+F format</span>
     <div class="spacer"></div>
     <span class="ctx" class:ok={!!connId}>{connId ? "Connection ready" : "No connection selected"}</span>
   </div>
@@ -171,6 +211,8 @@
   .run-btn:hover { background: var(--accent-hover); }
   .stop-btn { background: #b91c1c; border: 1px solid #dc2626; }
   .stop-btn:hover { background: #dc2626; }
+  .tool-btn { height: 28px; padding: 0 10px; border-radius: 6px; background: var(--panel-2); color: var(--fg); border: 1px solid var(--border); font-size: 12px; }
+  .tool-btn:hover { background: var(--hover); }
   .run-icon { font-size: 10px; }
   .hint { color: var(--muted-fg); font-size: 12px; }
   .spacer { flex: 1; }

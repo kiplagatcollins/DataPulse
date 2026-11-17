@@ -1,6 +1,9 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import type { Profile, TableInfo, ColumnInfo } from "../../../bindings/github.com/collins/GoDBClient/internal/models/models";
   import { connect, disconnect, getDatabases, getTables, getColumns, listActive } from "../api";
+  import { listHistory, clearHistory, type HistoryEntry } from "../history";
+  import { listSavedQueries, deleteSavedQuery, type SavedQuery } from "../savedQueries";
 
   let {
     connections,
@@ -12,6 +15,7 @@
     onEdit,
     onDuplicate,
     onDelete,
+    onOpenSql,
   }: {
     connections: Profile[];
     onNew: () => void;
@@ -22,6 +26,7 @@
     onEdit: (p: Profile) => void;
     onDuplicate: (p: Profile) => void;
     onDelete: (p: Profile) => void | Promise<void>;
+    onOpenSql: (connId: string, sql: string, title?: string) => void;
   } = $props();
 
   let active = $state<Set<string>>(new Set());
@@ -33,6 +38,12 @@
   let errors = $state<Record<string, string>>({});
   let menu = $state<{ x: number; y: number; connId: string; schema?: string; table?: string } | null>(null);
 
+  let history = $state<HistoryEntry[]>([]);
+  let saved = $state<SavedQuery[]>([]);
+  let showHistory = $state(true);
+  let showSaved = $state(true);
+
+  function refreshLists() { history = listHistory().slice(0, 50); saved = listSavedQueries().slice(0, 50); }
   async function refreshActive() { try { active = new Set(await listActive()); } catch {} }
 
   async function reconnect(id: string) {
@@ -80,7 +91,20 @@
     menu = { x: e.clientX, y: e.clientY, connId, schema, table };
   }
 
+  function connName(id: string) { return connections.find(c => c.id === id)?.name || "connection"; }
+  function shortSql(s: string) { return s.replace(/\s+/g, " ").trim().slice(0, 60) || "(empty)"; }
+  function timeAgo(ts: number) {
+    const d = Date.now() - ts; if (d < 60000) return "now"; if (d < 3600000) return `${Math.floor(d/60000)}m`; if (d < 86400000) return `${Math.floor(d/3600000)}h`; return `${Math.floor(d/86400000)}d`;
+  }
+
   $effect(() => { connections; void refreshActive(); });
+  onMount(() => {
+    refreshLists();
+    const h = () => refreshLists(); const s = () => refreshLists();
+    window.addEventListener("godbclient:history", h);
+    window.addEventListener("godbclient:saved", s);
+    return () => { window.removeEventListener("godbclient:history", h); window.removeEventListener("godbclient:saved", s); };
+  });
 </script>
 
 <svelte:window onclick={() => (menu = null)} />
@@ -95,71 +119,117 @@
   </div>
 
   <div class="nav-body">
-    {#if connections.length === 0}
-      <div class="empty">
-        <div class="empty-icon">DB</div>
-        <div class="empty-title">No connections</div>
-        <div class="empty-sub">Create a connection to browse schemas, tables, and run queries.</div>
-        <button class="btn-primary" onclick={onNew}>New Connection</button>
-      </div>
-    {:else}
-      {#each connections as c (c.id)}
-        <div class="node conn"
-          onclick={() => toggleConn(c)}
-          onkeydown={(e) => e.key==='Enter' && toggleConn(c)}
-          oncontextmenu={(e) => ctx(e, c.id)}
-          role="button" tabindex="0">
-          <span class="caret">{open[`c:${c.id}`] ? "▾" : "▸"}</span>
-          <span class="dot" class:on={active.has(c.id)} title={active.has(c.id) ? 'Connected' : 'Disconnected'}></span>
-          <span class="label">{c.name}</span>
-          <button class="mini-btn" title="New SQL query" onclick={(e) => { e.stopPropagation(); onOpenQuery(c.id); }}>SQL</button>
-          <span class="pill">{String(c.driver)}</span>
+    <div class="section">
+      {#if connections.length === 0}
+        <div class="empty">
+          <div class="empty-icon">DB</div>
+          <div class="empty-title">No connections</div>
+          <div class="empty-sub">Create a connection to browse schemas, tables, and run queries.</div>
+          <button class="btn-primary" onclick={onNew}>New Connection</button>
         </div>
+      {:else}
+        {#each connections as c (c.id)}
+          <div class="node conn"
+            onclick={() => toggleConn(c)}
+            onkeydown={(e) => e.key==='Enter' && toggleConn(c)}
+            oncontextmenu={(e) => ctx(e, c.id)}
+            role="button" tabindex="0">
+            <span class="caret">{open[`c:${c.id}`] ? "▾" : "▸"}</span>
+            <span class="dot" class:on={active.has(c.id)} title={active.has(c.id) ? 'Connected' : 'Disconnected'}></span>
+            <span class="label">{c.name}</span>
+            <button class="mini-btn" title="New SQL query" onclick={(e) => { e.stopPropagation(); onOpenQuery(c.id); }}>SQL</button>
+            <span class="pill">{String(c.driver)}</span>
+          </div>
 
-        {#if open[`c:${c.id}`]}
-          {#if loading[`c:${c.id}`]}<div class="node meta" style="--d:1">Connecting…</div>{/if}
-          {#if errors[`c:${c.id}`]}<div class="node err" style="--d:1">{errors[`c:${c.id}`]}</div>{/if}
-          {#each (dbs[c.id] ?? []) as db}
-            <div class="node" style="--d:1" onclick={() => toggleDb(c.id, db)} onkeydown={(e)=>e.key==='Enter'&&toggleDb(c.id,db)} role="button" tabindex="0">
-              <span class="caret">{open[`d:${c.id}:${db}`] ? "▾" : "▸"}</span>
-              <span class="kind schema">S</span>
-              <span class="label">{db}</span>
-            </div>
+          {#if open[`c:${c.id}`]}
+            {#if loading[`c:${c.id}`]}<div class="node meta" style="--d:1">Connecting…</div>{/if}
+            {#if errors[`c:${c.id}`]}<div class="node err" style="--d:1">{errors[`c:${c.id}`]}</div>{/if}
+            {#each (dbs[c.id] ?? []) as db}
+              <div class="node" style="--d:1" onclick={() => toggleDb(c.id, db)} onkeydown={(e)=>e.key==='Enter'&&toggleDb(c.id,db)} role="button" tabindex="0">
+                <span class="caret">{open[`d:${c.id}:${db}`] ? "▾" : "▸"}</span>
+                <span class="kind schema">S</span>
+                <span class="label">{db}</span>
+              </div>
 
-            {#if open[`d:${c.id}:${db}`]}
-              {#if loading[`d:${c.id}:${db}`]}<div class="node meta" style="--d:2">Loading…</div>{/if}
-              {#each (tables[`d:${c.id}:${db}`] ?? []) as t}
-                <div class="node" style="--d:2"
-                  onclick={() => toggleTable(c.id, t.schema, t.name)}
-                  ondblclick={() => onOpenTable(c.id, t.schema, t.name)}
-                  oncontextmenu={(e) => ctx(e, c.id, t.schema, t.name)}
-                  onkeydown={(e)=>e.key==='Enter'&&toggleTable(c.id,t.schema,t.name)}
-                  role="button" tabindex="0">
-                  <span class="caret">{open[`t:${c.id}:${t.schema}:${t.name}`] ? "▾" : "▸"}</span>
-                  <span class="kind" class:view={t.type?.toLowerCase().includes('view')}>{t.type?.toLowerCase().includes('view') ? 'V' : 'T'}</span>
-                  <span class="label">{t.name}</span>
-                </div>
+              {#if open[`d:${c.id}:${db}`]}
+                {#if loading[`d:${c.id}:${db}`]}<div class="node meta" style="--d:2">Loading…</div>{/if}
+                {#each (tables[`d:${c.id}:${db}`] ?? []) as t}
+                  <div class="node" style="--d:2"
+                    onclick={() => toggleTable(c.id, t.schema, t.name)}
+                    ondblclick={() => onOpenTable(c.id, t.schema, t.name)}
+                    oncontextmenu={(e) => ctx(e, c.id, t.schema, t.name)}
+                    onkeydown={(e)=>e.key==='Enter'&&toggleTable(c.id,t.schema,t.name)}
+                    role="button" tabindex="0">
+                    <span class="caret">{open[`t:${c.id}:${t.schema}:${t.name}`] ? "▾" : "▸"}</span>
+                    <span class="kind" class:view={t.type?.toLowerCase().includes('view')}>{t.type?.toLowerCase().includes('view') ? 'V' : 'T'}</span>
+                    <span class="label">{t.name}</span>
+                  </div>
 
-                {#if open[`t:${c.id}:${t.schema}:${t.name}`]}
-                  {#if loading[`t:${c.id}:${t.schema}:${t.name}`]}<div class="node meta" style="--d:3">Loading…</div>{/if}
-                  {#each (cols[`t:${c.id}:${t.schema}:${t.name}`] ?? []) as col}
-                    <div class="node leaf" style="--d:3">
-                      <span class="caret"></span>
-                      <span class="kind col" class:pk={col.isPrimary}>{col.isPrimary ? 'PK' : 'C'}</span>
-                      <span class="label">{col.name}</span>
-                      <span class="type">{col.type}</span>
-                    </div>
-                  {/each}
+                  {#if open[`t:${c.id}:${t.schema}:${t.name}`]}
+                    {#if loading[`t:${c.id}:${t.schema}:${t.name}`]}<div class="node meta" style="--d:3">Loading…</div>{/if}
+                    {#each (cols[`t:${c.id}:${t.schema}:${t.name}`] ?? []) as col}
+                      <div class="node leaf" style="--d:3">
+                        <span class="caret"></span>
+                        <span class="kind col" class:pk={col.isPrimary}>{col.isPrimary ? 'PK' : 'C'}</span>
+                        <span class="label">{col.name}</span>
+                        <span class="type">{col.type}</span>
+                      </div>
+                    {/each}
+                  {/if}
+                {/each}
+                {#if !loading[`d:${c.id}:${db}`] && (tables[`d:${c.id}:${db}`] ?? []).length === 0}
+                  <div class="node meta" style="--d:2">No tables</div>
                 {/if}
-              {/each}
-              {#if !loading[`d:${c.id}:${db}`] && (tables[`d:${c.id}:${db}`] ?? []).length === 0}
-                <div class="node meta" style="--d:2">No tables</div>
               {/if}
-            {/if}
+            {/each}
+          {/if}
+        {/each}
+      {/if}
+    </div>
+
+    <div class="section panel">
+      <div class="panel-head" onclick={() => (showHistory = !showHistory)} role="button" tabindex="0" onkeydown={(e)=>e.key==='Enter'&&(showHistory=!showHistory)}>
+        <span class="caret">{showHistory ? "▾" : "▸"}</span><span class="panel-title">Query History</span>
+        <button class="mini-btn ghost" onclick={(e) => { e.stopPropagation(); clearHistory(); refreshLists(); }}>Clear</button>
+      </div>
+      {#if showHistory}
+        <div class="list">
+          {#each history as h (h.id)}
+            <div class="list-item" title={h.sql} onclick={() => onOpenSql(h.connId, h.sql)} role="button" tabindex="0" onkeydown={(e)=>e.key==='Enter'&&onOpenSql(h.connId,h.sql)}>
+              <span class="status-dot" class:ok={h.status==='ok'} class:err={h.status==='error'}></span>
+              <div class="list-main">
+                <div class="list-text">{shortSql(h.sql)}</div>
+                <div class="list-meta">{connName(h.connId)} · {timeAgo(h.ts)}{h.durationMs != null ? ` · ${h.durationMs}ms` : ''}</div>
+              </div>
+            </div>
+          {:else}
+            <div class="node meta" style="--d:0">No history yet</div>
           {/each}
-        {/if}
-      {/each}
-    {/if}
+        </div>
+      {/if}
+    </div>
+
+    <div class="section panel">
+      <div class="panel-head" onclick={() => (showSaved = !showSaved)} role="button" tabindex="0" onkeydown={(e)=>e.key==='Enter'&&(showSaved=!showSaved)}>
+        <span class="caret">{showSaved ? "▾" : "▸"}</span><span class="panel-title">Saved Queries</span>
+      </div>
+      {#if showSaved}
+        <div class="list">
+          {#each saved as q (q.id)}
+            <div class="list-item" title={q.sql} onclick={() => onOpenSql(q.connId, q.sql, q.name)} role="button" tabindex="0" onkeydown={(e)=>e.key==='Enter'&&onOpenSql(q.connId,q.sql,q.name)}>
+              <span class="kind schema">Q</span>
+              <div class="list-main">
+                <div class="list-text">{q.name}</div>
+                <div class="list-meta">{connName(q.connId)}</div>
+              </div>
+              <button class="del-btn" title="Delete" onclick={(e) => { e.stopPropagation(); deleteSavedQuery(q.id); refreshLists(); window.dispatchEvent(new Event('godbclient:saved')); }}>×</button>
+            </div>
+          {:else}
+            <div class="node meta" style="--d:0">No saved queries</div>
+          {/each}
+        </div>
+      {/if}
+    </div>
   </div>
 
   {#if menu}
@@ -186,7 +256,23 @@
   .nav-head { display: flex; align-items: center; justify-content: space-between; padding: 10px 10px 8px; border-bottom: 1px solid var(--border-subtle); }
   .nav-title { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted-fg); }
   .nav-actions { display: flex; gap: 6px; }
-  .nav-body { flex: 1; overflow: auto; padding: 6px; }
+  .nav-body { flex: 1; overflow: auto; padding: 6px; display: flex; flex-direction: column; gap: 6px; }
+  .section { display: flex; flex-direction: column; }
+  .panel { border-top: 1px solid var(--border-subtle); padding-top: 4px; }
+  .panel-head { display: flex; align-items: center; gap: 6px; padding: 4px 6px; cursor: pointer; color: var(--muted-fg); border-radius: 5px; }
+  .panel-head:hover { background: var(--hover); color: var(--fg); }
+  .panel-title { font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; flex: 1; }
+  .list { display: flex; flex-direction: column; gap: 2px; padding: 2px 0 4px; }
+  .list-item { display: flex; align-items: center; gap: 8px; padding: 5px 6px; border-radius: 5px; cursor: pointer; }
+  .list-item:hover { background: var(--hover); }
+  .list-main { min-width: 0; flex: 1; }
+  .list-text { font-size: 12px; color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .list-meta { font-size: 10.5px; color: var(--muted-fg); }
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #64748b; flex: 0 0 auto; }
+  .status-dot.ok { background: var(--ok); }
+  .status-dot.err { background: #ef4444; }
+  .del-btn { width: 18px; height: 18px; border-radius: 4px; color: var(--muted-fg); font-size: 14px; display: inline-flex; align-items: center; justify-content: center; }
+  .del-btn:hover { background: rgba(239,68,68,.15); color: #f87171; }
   .icon-btn { width: 24px; height: 24px; border-radius: 4px; border: 1px solid var(--border); color: var(--muted-fg); background: var(--panel-2); display: inline-flex; align-items: center; justify-content: center; font-size: 14px; }
   .icon-btn:hover { color: var(--fg); background: var(--hover); }
   .icon-btn.accent { background: var(--accent); border-color: var(--accent); color: #fff; }
@@ -201,6 +287,7 @@
   .node.leaf { cursor: default; }
   .mini-btn { margin-left: auto; height: 18px; padding: 0 6px; border-radius: 4px; font-size: 10px; font-weight: 600; color: #93c5fd; background: rgba(59,130,246,.12); border: 1px solid rgba(59,130,246,.25); }
   .mini-btn:hover { background: rgba(59,130,246,.2); color: #bfdbfe; }
+  .mini-btn.ghost { color: var(--muted-fg); background: transparent; border-color: transparent; font-weight: 500; }
   .node.meta, .node.err { cursor: default; color: var(--muted-fg); font-size: 12px; }
   .node.err { color: #f87171; }
   .caret { width: 10px; color: var(--muted-fg); font-size: 11px; flex: 0 0 auto; }

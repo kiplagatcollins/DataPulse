@@ -69,15 +69,19 @@
     return t?.connId || activeIds[0] || "";
   }
 
-  function newSql(initial = "", connId = "") {
+  function newSql(initial = "", connId = "", title?: string) {
     seq += 1;
-    const t: Tab = { id: crypto.randomUUID(), title: `SQL ${seq}`, kind: "sql", connId: connId || currentConn(), sql: initial || "SELECT 1;" };
+    const t: Tab = { id: crypto.randomUUID(), title: title || `SQL ${seq}`, kind: "sql", connId: connId || currentConn(), sql: initial || "SELECT 1;" };
     tabs = [...tabs, t];
     activeTab = t.id;
   }
 
   function openQuery(connId: string) {
     newSql("", connId);
+  }
+
+  function openSql(connId: string, sql: string, title?: string) {
+    newSql(sql, connId, title);
   }
 
   function editConn(p: Profile) { editingProfile = { ...p }; showConn = true; }
@@ -172,6 +176,7 @@
         onEdit={editConn}
         onDuplicate={duplicateConn}
         onDelete={deleteConn}
+        onOpenSql={openSql}
       />
     </aside>
 
